@@ -39,16 +39,17 @@ object pSet extends Cat {
      * `g.compose(f)` does not work... 
      */
     new PartialFunction[A, C] {
+
       def isDefinedAt(a: A) = if (f.isDefinedAt(a)) g.isDefinedAt(f(a)) else false
 
       def apply(a: A) = g(f(a))
+
     }
   }
 
   def identity[A <: Obj]: Arrow[A, A] = { case a => a }
 
 }
-
 
 case class Prod[C <: Cat, D <: Cat](c: C, d: D) extends Cat {
 
@@ -64,6 +65,7 @@ case class Prod[C <: Cat, D <: Cat](c: C, d: D) extends Cat {
 }
 
 case class Dual[C <: Cat](c: C) extends Cat {
+
   type Obj = c.Obj
 
   type Arrow[A <: Obj, B <: Obj] = c.Arrow[B, A]
@@ -72,7 +74,10 @@ case class Dual[C <: Cat](c: C) extends Cat {
     c.compose(f, g)
 
   def identity[A <: Obj]: Arrow[A, A] = c.identity
+
 }
+
+
 
 
 
