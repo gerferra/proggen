@@ -38,4 +38,40 @@ object Test {
     sXs.compose(arrow24, arrow13) 
 
 
+  object IntPreOrd extends PreOrd[Integer] {
+
+    sealed trait LessThan[A <: Integer, B <: Integer] {
+      def _1: A
+      def _2: B
+    }
+
+    val one = 1: Integer
+    val two = 2: Integer
+    val three = 3: Integer
+
+    object OneTwo extends LessThan[one.type, two.type] {
+      def _1 = one
+      def _2 = two
+    }
+    
+    object TwoThree extends LessThan[two.type, three.type]{
+      def _1 = two
+      def _2 = three
+    }
+
+    def trans[A <: Integer, B <: Integer, C <: Integer](
+        a: LessThan[A,B],
+        b: LessThan[B,C]): LessThan[A,C] = new LessThan[A, C] {
+      def _1 = a._1
+      def _2 = b._2
+    }
+    
+    // need a way to signal single elements...
+    def reflex[A <: Integer]: LessThan[A,A] = new LessThan[A, A] {
+      def _1 = ???
+      def _2 = ???
+    }
+
+  }
+
 }
