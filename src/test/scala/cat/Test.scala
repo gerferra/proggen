@@ -37,41 +37,59 @@ object Test {
   val arrow13_24: sXs.Arrow[Pair[Int, A], Pair[String, C]] = 
     sXs.compose(arrow24, arrow13) 
 
+  /*
+   * somewhat works for the instances `one`, `two` and `three`
+   */
+  object IntPreOrd extends PreOrd {
+    
+    type S = Integer
 
-  object IntPreOrd extends PreOrd[Integer] {
-
-    sealed trait LessThan[A <: Integer, B <: Integer] {
-      def _1: A
-      def _2: B
-    }
-
+    sealed trait LessThan[A <: Integer, B <: Integer]
+    
     val one = 1: Integer
     val two = 2: Integer
     val three = 3: Integer
 
-    object OneTwo extends LessThan[one.type, two.type] {
-      def _1 = one
-      def _2 = two
-    }
+    object OneTwo extends LessThan[one.type, two.type] 
     
-    object TwoThree extends LessThan[two.type, three.type]{
-      def _1 = two
-      def _2 = three
-    }
+    object TwoThree extends LessThan[two.type, three.type]
 
     def trans[A <: Integer, B <: Integer, C <: Integer](
         a: LessThan[A,B],
-        b: LessThan[B,C]): LessThan[A,C] = new LessThan[A, C] {
-      def _1 = a._1
-      def _2 = b._2
-    }
+        b: LessThan[B,C]): LessThan[A,C] = new LessThan[A, C] {}
     
-    // need a way to signal single elements...
-    def reflex[A <: Integer]: LessThan[A,A] = new LessThan[A, A] {
-      def _1 = ???
-      def _2 = ???
-    }
+    def reflex[A <: Integer]: LessThan[A,A] = new LessThan[A, A] {}
 
+  }
+  
+  sealed trait PNum
+  object Zero extends PNum
+  case class Succ[N <: PNum](pred: N) extends PNum
+  
+  val One = Succ(Zero)
+  val Two = Succ(One)
+  val Three = Succ(Two)
+  val Four = Succ(Three)
+  
+  object PeanoNumPreOrd extends PreOrd {
+    
+    type S = PNum
+
+    sealed trait LessThan[A <: PNum, B <: PNum]
+    
+    def trans[A <: PNum, B <: PNum, C <: PNum](
+        a: LessThan[A,B],
+        b: LessThan[B,C]): LessThan[A,C] = new LessThan[A, C] { }
+    
+    def reflex[A <: PNum]: LessThan[A,A] = new LessThan[A, A] { }
+
+    implicit def ZeroLTEqAll[Z <: Zero.type, N <: PNum]: LessThan[Z, N] = new LessThan[Z, N] {}
+    
+    def lteq2[N1 <: PNum, N2 <: PNum, A <: Succ[N1], B <: Succ[N2]](implicit ev: LessThan[N1, N2]): LessThan[A, B] = new LessThan[A, B] {}
+
+    def lteq2[N1 <: PNum, N2 <: PNum](a: Succ[N1], b: Succ[N2])(implicit ev: LessThan[N1, N2]): LessThan[Succ[N1], Succ[N2]] = new LessThan[Succ[N1], Succ[N2]] {}
+    
+    def lteq[A <: PNum, B <: PNum](implicit ev: LessThan[A, B]): LessThan[A, B] = ev
   }
 
 }

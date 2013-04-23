@@ -135,7 +135,9 @@ case class Dual[C <: Cat](c: C) extends Cat {
 }
 
 
-trait PreOrd[S] {
+trait PreOrd {
+  
+  type S
 
   type LessThan[A <: S, B <: S]
 
@@ -147,9 +149,9 @@ trait PreOrd[S] {
 
 }
 
-case class PreCat[S](s: PreOrd[S]) extends Cat {
+case class PreCat[S](s: PreOrd) extends Cat {
 
-  type Obj = S
+  type Obj = s.S
 
   type Arrow[A <: Obj, B <: Obj] = s.LessThan[A, B]
 
