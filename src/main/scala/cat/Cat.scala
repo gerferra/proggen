@@ -135,31 +135,31 @@ case class Dual[C <: Cat](c: C) extends Cat {
 }
 
 
-trait PreOrd {
+trait PreOrd[S] {
   
-  type S
+  //type S
 
-  type LessThan[A <: S, B <: S]
+  type LTEq[A <: S, B <: S]
 
-  def reflex[A <: S]: LessThan[A, A]
+  def reflex[A <: S]: LTEq[A, A]
 
   def trans[A <: S, B <: S, C <: S](
-    a: LessThan[A, B],
-    b: LessThan[B, C]): LessThan[A, C]  
+    a: LTEq[A, B],
+    b: LTEq[B, C]): LTEq[A, C]  
 
 }
 
-case class PreCat[S](s: PreOrd) extends Cat {
+case class PreCat[S](s: PreOrd[S]) extends Cat {
 
-  type Obj = s.S
+  type Obj = S//s.S
 
-  type Arrow[A <: Obj, B <: Obj] = s.LessThan[A, B]
+  type Arrow[A <: S, B <: S] = s.LTEq[A, B] 
 
-  def compose[A <: Obj, B <: Obj, C <: Obj](
+  def compose[A <: S, B <: S, C <: S](
     g: Arrow[B, C], 
     f: Arrow[A, B]): Arrow[A, C] =
     s.trans(f, g)
 
-  def identity[A <: Obj]: Arrow[A, A] = s.reflex
+  def identity[A <: S]: Arrow[A, A] = s.reflex
 
 }
