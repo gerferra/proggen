@@ -5,8 +5,9 @@ assemblySettings
 
 name := "proggen"
 
-scalaVersion := "2.10.1"
+scalaVersion := "2.10.2"
 
+scalacOptions ++= Seq("-deprecation", "-feature")
 
 
 EclipseKeys.executionEnvironment := Some(EclipseExecutionEnvironment.JavaSE16)
