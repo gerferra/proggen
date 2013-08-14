@@ -28,13 +28,81 @@ object Regular {
   case class Left[A, B, F <: Regular[A, B], G <: Regular[A, B]](f: F) extends +[A, B, F, G]
   case class Right[A, B, F <: Regular[A, B], G <: Regular[A, B]](g: G) extends +[A, B, F, G]
 
+
+/*
+  trait AppFunc2 {
+    
+    type A = Int
+    type B = Int
+
+    type F = Regular[A, B] // Regular[Int, Rose[Int]]
+
+    type D[X] = List[X]
+
+    def functor: Functor[D]
+
+    def value: D[F]
+
+    def h(f: Regular[A, B]): B
+
+    def func: D[F] => D[B] = functor.fmap(h)
+
+    def tmp: D[B] = func(value)
+
+    def res: B = fold(h)(tmp)
+  }
+
+  */
+
+  //case class AppFunc3[A, B, D[_]](functor: Functor[D], value: D[Regular[A, B]])(implicit DIsRegular: D[B] => Regular[B, D[B]]) extends Regular[A, B] {
+  trait AppFunc3[A, B] extends Regular[A, B] {
+
+    type D[X]
+
+    def functor: Functor[D]
+
+    def value: D[Regular[A, B]]
+
+    def asRegularB(d: D[B]): Regular[B, D[B]]
+    def asRegularA(d: D[A]): Regular[A, D[A]]
+
+  }
+
+  object AppFunc3 {
+
+    def unapply[A, B](a: AppFunc3[A, B]): Option[(Functor[a.D], a.D[Regular[A,B]])] = Some(a.functor, a.value)
+
+    def apply[A, B, D1[_]](
+      f: Functor[D1], 
+      v: D1[Regular[A, B]], 
+      convB: D1[B] => Regular[B, D1[B]],
+      convA: D1[A] => Regular[A, D1[A]]): AppFunc3[A, B] = 
+      new AppFunc3[A, B] {
+
+        type D[X] = D1[X]
+
+        def functor: Functor[D] = f
+
+        def value: D[Regular[A, B]] = v
+
+        def asRegularA(d: D[A]): Regular[A, D[A]] = convA(d)
+        def asRegularB(d: D[B]): Regular[B, D[B]] = convB(d)
+
+      }
+  }
+
+
+/*
   case class AppFunc[A, B, F <: Regular[A, B], D[_]](f: Functor[D], d: D[F])(
       implicit val ev: D[A] => Regular[A, D[A]],
                val ev2: B => Regular[A, B]) extends Regular[A, B] {
+    /* stinky ... */
     type DD[X] = D[X]
     type BB = B
     type FF = F
   }
+
+  */
 
 
 
@@ -54,20 +122,22 @@ object Regular {
         case Right(g) => fold(h)(g)
       }
 
-      case a @ AppFunc(f, d) =>
+      //case a @ AppFunc3(f, d) =>
         // moar bizarre things ...
-
+        //???
+        /*
         implicit val ev2: a.BB => Regular[A, a.BB] = a.ev2
         val i: a.DD[B] = f.fmap{ x: Regular[A, a.BB] => fold(h)(x)(ev2)}(d)
 
         implicit val ev: a.DD[A] => Regular[A, a.DD[A]] = a.ev
-        h(AppFunc[A, a.BB, Regular[A, a.BB], a.DD](f, i).asInstanceOf[AppFunc[A, B, Regular[A, B], a.DD]])
+        h(AppFunc3[A, a.BB, Regular[A, a.BB], a.DD](f, i).asInstanceOf[AppFunc3[A, B, Regular[A, B], a.DD]])
+        */
     }
   }
 
   def Zero[X]: X => Int = x => 0
 
-  def fmax[F <: Regular[Int, Int]](f: F): Int = {
+  def fmax(f: Regular[Int, Int]): Int = {
     f match {
       case U() => 0
       case K(t) => Zero(t)
@@ -78,11 +148,28 @@ object Regular {
         case Left(f) => fmax(f)
         case Right(g) => fmax(g)
       }
-      case a @ AppFunc(f, d) =>
-        // this compiles no matter what I put in a.DD, ex a.DD[Char] ... not too trustworthy ...
-        val i: a.DD[Int] = f.fmap(fmax)(d)
-        implicit val ev: a.DD[Int] => Regular[Int, a.DD[Int]] = a.ev
-        fold(fmax)(i)
+      
+      case a: AppFunc3[Int, Int] =>
+        
+        type A = Int
+        type B = Int
+
+        type F = Regular[A, B] // Regular[Int, Rose[Int]]
+
+        val functor: Functor[a.D] = a.functor // Functor[List]
+        
+        val value: a.D[F] = a.value // List[Regular[Int, Rose[Int]]] ~~ List[Rose[Int]]
+
+        def h(f: Regular[A, B]): B = fmax(f)
+
+        def func: a.D[F] => a.D[B] = functor.fmap(h)
+
+        val tmp: a.D[B] = func(value) // List[Int]
+
+        def res: B = fold(h)(a.asRegularB(tmp))(a.asRegularA) 
+
+        res
+
     }
   }
 
@@ -123,7 +210,10 @@ object Regular {
   val tmax: Int = pmax(tree)  
 
   sealed trait Rose[+A]
-  case class Fork[A](a: A, childs: List[Rose[A]]) extends Rose[A]
+  case class Fork[A](a: A, childs: List[Rose[A]]) extends Rose[A] 
+  // R_A[B]       = A x List[B]
+  // R_A[Mu[R_A]] = A x List[Mu[R_A]] = A x List[Rose[A]]
+  // R_A[Int]     = A x List[Nat]
 
   val rose = Fork(1, List(Fork(2, Nil), Fork(4, List(Fork(5, Nil))), Fork(3, Nil)))
 
@@ -134,11 +224,20 @@ object Regular {
       
   }
 
-  implicit def RoseIsRegular[A](r: Rose[A])(implicit ev: List[A] => Regular[A, List[A]]): Regular[A, Rose[A]] = 
+  implicit def RoseIsRegular[A]
+    (r: Rose[A])
+    (implicit 
+      evA: List[A] => Regular[A, List[A]],
+      evB: List[Rose[A]] => Regular[Rose[A], List[Rose[A]]]): Regular[A, Rose[A]] = 
     r match {
       case Fork(a, childs) => 
         val par = Par[A, Rose[A]](a)
-        val func = AppFunc[A, Rose[A], Regular[A, Rose[A]], List](ListFunc, childs.map(x => RoseIsRegular(x)(ev)))
+        val func = 
+          AppFunc3[A, Rose[A], List](
+            ListFunc, 
+            childs.map(x => RoseIsRegular(x)(evA, evB)), 
+            evB,
+            evA)
         
         val prod = x(par, func)
         prod

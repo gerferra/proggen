@@ -59,8 +59,8 @@ object pSet extends Cat {
 object Prod {
   // type alias at package level: type Pair[+A, +B] = Prod.Pair[A, B]
   class Pair[+A, +B](_1: A, _2: B) extends Tuple2[A, B](_1, _2) {
-    type _1 = A
-    type _2 = B
+    type _1 <: A
+    type _2 <: B
   }
 
 }
