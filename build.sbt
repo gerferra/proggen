@@ -5,7 +5,7 @@ assemblySettings
 
 name := "proggen"
 
-scalaVersion := "2.11.0-M4"
+scalaVersion := "2.10.2"
 
 scalacOptions ++= Seq("-deprecation", "-feature")
 
